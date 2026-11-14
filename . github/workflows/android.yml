@@ -1,0 +1,78 @@
+name: Build Android APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Arrange project files
+        run: |
+          mkdir -p www assets resources
+          mv index.html www/index.html
+          mv icon-only.png icon-foreground.png icon-background.png splash.png splash-dark.png assets/
+          mv ic_stat_icon_config_sample.png resources/
+          cat > package.json <<'EOF'
+          {
+            "name": "sanad",
+            "version": "1.0.0",
+            "private": true,
+            "description": "Sanad Android app",
+            "dependencies": {
+              "@capacitor/core": "^6.2.0",
+              "@capacitor/android": "^6.2.0",
+              "@capacitor/local-notifications": "^6.1.0"
+            },
+            "devDependencies": {
+              "@capacitor/cli": "^6.2.0",
+              "@capacitor/assets": "^3.0.5"
+            }
+          }
+          EOF
+          cat > capacitor.config.json <<'EOF'
+          {
+            "appId": "com.jibreel.sanad",
+            "appName": "سَنَد",
+            "webDir": "www",
+            "android": {
+              "backgroundColor": "#0a0626"
+            },
+            "plugins": {
+              "LocalNotifications": {
+                "smallIcon": "ic_stat_icon_config_sample",
+                "iconColor": "#8b6bff"
+              }
+            }
+          }
+          EOF
+      - name: Install packages
+        run: npm install
+      - name: Add Android platform
+        run: npx cap add android
+      - name: Generate icons and splash
+        run: npx @capacitor/assets generate --android
+      - name: Notification icon and permission
+        run: |
+          mkdir -p android/app/src/main/res/drawable
+          cp resources/ic_stat_icon_config_sample.png android/app/src/main/res/drawable/
+          sed -i 's#<uses-permission android:name="android.permission.INTERNET" />#&\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />#' android/app/src/main/AndroidManifest.xml
+      - name: Sync web files
+        run: npx cap sync android
+      - name: Build debug APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sanad-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
