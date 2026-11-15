@@ -94,7 +94,7 @@ jobs:
           cat > capacitor.config.json <<'EOF'
           {
             "appId": "com.jibreel.sanad",
-            "appName": "爻賻賳賻丿",
+            "appName": "Sanad",
             "webDir": "www",
             "android": {
               "backgroundColor": "#0a0626"
@@ -111,6 +111,10 @@ jobs:
         run: npm install
       - name: Add Android platform
         run: npx cap add android
+      - name: Arabic app name (safe encoding)
+        run: |
+          mkdir -p android/app/src/main/res/values-ar
+          printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <string name="app_name">&#1587;&#1606;&#1583;</string>\n    <string name="title_activity_main">&#1587;&#1606;&#1583;</string>\n</resources>\n' > android/app/src/main/res/values-ar/strings.xml
       - name: Generate icons and splash
         run: npx @capacitor/assets generate --android
       - name: Notification icon and permission
