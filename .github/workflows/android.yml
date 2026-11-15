@@ -82,7 +82,8 @@ jobs:
             "dependencies": {
               "@capacitor/core": "^6.2.0",
               "@capacitor/android": "^6.2.0",
-              "@capacitor/local-notifications": "^6.1.0"
+              "@capacitor/local-notifications": "^6.1.0",
+              "@capacitor/geolocation": "^6.0.0"
             },
             "devDependencies": {
               "@capacitor/cli": "^6.2.0",
@@ -116,7 +117,7 @@ jobs:
         run: |
           mkdir -p android/app/src/main/res/drawable
           cp resources/ic_stat_icon_config_sample.png android/app/src/main/res/drawable/
-          sed -i 's#<uses-permission android:name="android.permission.INTERNET" />#&\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />#' android/app/src/main/AndroidManifest.xml
+          sed -i 's#<uses-permission android:name="android.permission.INTERNET" />#&\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />#' android/app/src/main/AndroidManifest.xml
       - name: Sync web files
         run: npx cap sync android
       - name: Build debug APK
