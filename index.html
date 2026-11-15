@@ -92,6 +92,16 @@ dialog::backdrop{background:rgba(5,3,20,.7);backdrop-filter:blur(4px)}
 dialog h2{font-size:1.15rem;margin-bottom:4px}dialog p{font-size:.84rem;color:var(--muted);margin-bottom:12px;line-height:1.7}
 .row{display:flex;gap:8px}.row .sw{margin-top:0}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.qwrap{position:relative;width:min(78vw,300px);height:min(78vw,300px);margin:8px auto 4px}
+.qtop{position:absolute;top:-4px;left:50%;transform:translateX(-50%);font-size:1.5rem;color:var(--gold);z-index:2;line-height:1}
+.dial{position:absolute;inset:16px;border-radius:50%;border:2px solid var(--line);background:radial-gradient(circle,rgba(139,107,255,.16),rgba(255,255,255,.03))}
+.dial.ok{border-color:var(--mint);box-shadow:0 0 30px rgba(52,211,153,.5)}
+.qn{position:absolute;top:6px;left:50%;transform:translateX(-50%);font-weight:800;color:#fca5a5;font-size:.9rem}
+.qpt{position:absolute;left:50%;top:50%;width:0;height:0}
+.qline{position:absolute;left:-1px;bottom:0;width:2px;height:min(33vw,124px);background:linear-gradient(to top,rgba(251,191,36,0),#fbbf24)}
+.qk{position:absolute;left:-16px;bottom:min(33vw,124px);width:32px;text-align:center;font-size:1.7rem;line-height:1}
+.qinfo{display:flex;justify-content:space-around;text-align:center;margin:10px 0}.qinfo b{display:block;font-size:1.3rem}.qinfo small{color:var(--muted);font-size:.74rem}
+.qstate{text-align:center;margin:8px 0}.qcoord{text-align:center;font-size:.74rem;color:var(--muted);direction:ltr;margin-bottom:6px}
 </style>
 </head>
 <body>
@@ -110,6 +120,7 @@ dialog h2{font-size:1.15rem;margin-bottom:4px}dialog p{font-size:.84rem;color:va
     <section class="view" id="vHome"></section>
     <section class="view" id="vRoom"></section>
     <section class="view" id="vTasks"></section>
+    <section class="view" id="vQibla"></section>
     <section class="view" id="vSet"></section>
   </main>
 </div>
@@ -335,13 +346,13 @@ function render(){
   const arrow=t.d==='rtl'?'→':'←';
   const bar=$('bar');
   const initial=S.user&&S.user.name?S.user.name.trim().charAt(0).toUpperCase():'👤';
-  const sub=inRoom?`<div class="bar"><button class="back" data-a="back" aria-label="${u.back}">${arrow}</button><h2>${E[S.room][0]} ${t.emo[S.room]}</h2></div>`:S.tab==='home'?'':`<div class="bar">${mini}<h2>${S.tab==='tasks'?u.tT:u.tS}</h2></div>`;
+  const sub=inRoom?`<div class="bar"><button class="back" data-a="back" aria-label="${u.back}">${arrow}</button><h2>${E[S.room][0]} ${t.emo[S.room]}</h2></div>`:S.tab==='home'?'':`<div class="bar">${mini}<h2>${S.tab==='tasks'?u.tT:S.tab==='qibla'?u.tQ:u.tS}</h2></div>`;
   bar.innerHTML=`<div class="top"><select id="langTop" aria-label="${u.langL}">${Object.keys(L).map(k=>`<option value="${k}" ${k===S.lang?'selected':''}>${L[k].n}</option>`).join('')}</select><button class="avatar" data-a="edit" aria-label="${u.prof}">${initial}</button></div>`+sub;
   bar.style.flexDirection='column';bar.style.alignItems='stretch';
-  const views={home:'vHome',tasks:'vTasks',set:'vSet'};
-  ['vHome','vRoom','vTasks','vSet'].forEach(v=>$(v).classList.remove('on'));
+  const views={home:'vHome',tasks:'vTasks',qibla:'vQibla',set:'vSet'};
+  ['vHome','vRoom','vTasks','vQibla','vSet'].forEach(v=>$(v).classList.remove('on'));
   $(inRoom?'vRoom':views[S.tab]).classList.add('on');
-  $('tabs').innerHTML=[['home','🌿',u.tH],['tasks','✨',u.tT],['set','⚙️',u.tS]].map(x=>`<button class="tab ${S.tab===x[0]&&!inRoom?'on':''}" data-a="tab" data-v="${x[0]}"><span>${x[1]}</span>${x[2]}</button>`).join('');
+  $('tabs').innerHTML=[['home','🌿',u.tH],['tasks','✨',u.tT],['qibla','🧭',u.tQ],['set','⚙️',u.tS]].map(x=>`<button class="tab ${S.tab===x[0]&&!inRoom?'on':''}" data-a="tab" data-v="${x[0]}"><span>${x[1]}</span>${x[2]}</button>`).join('');
   const hello=S.user&&S.user.name?u.hi.replace('{n}',S.user.name):'';
   const cnt=E.map((_,i)=>todayDoses().filter(d=>d[0]===i).length);
   $('vHome').innerHTML=`<section class="hero"><div class="logo"><div class="badge"><img alt="سند" src="${LOGO}"></div></div><h1>${u.title}</h1><p>${u.tag}</p><div class="hello">${hello}</div></section>`+
@@ -359,6 +370,8 @@ function render(){
   for(let i=6;i>=0;i--){const d=back(i),ok=S.days.includes(key(d));wh+=`<div class="day"><div class="dot ${ok?'ok':''} ${i===0?'now':''}">${ok?'✓':''}</div>${wk.format(d)}</div>`}
   $('vTasks').innerHTML=`<section class="card"><div class="ihead"><div class="t">${u.iT}</div><div class="streak">🔥 ${streak()} ${u.days}</div></div><div class="s">${u.iS}</div><div class="week">${wh}</div>`+
    `<div class="ch">${t.ch[(dayNo()+S.swaps)%t.ch.length]}</div><button class="go ${done()?'done':''}" data-a="go" ${done()?'disabled':''}>${done()?u.ok:u.go}</button><button class="sw" data-a="sw">${u.sw}</button></section>`;
+  $('vQibla').innerHTML=qiblaHTML();
+  syncCompass();
   $('vSet').innerHTML=`<section class="card"><div class="t">${u.langL}</div><select id="lang" aria-label="${u.langL}">${Object.keys(L).map(k=>`<option value="${k}" ${k===S.lang?'selected':''}>${L[k].n}</option>`).join('')}</select></section>`+
    `<section class="card"><div class="t">${u.prof}</div><div class="who">${S.user&&S.user.name?S.user.name:'—'}</div><div class="mail">${S.user&&S.user.email?S.user.email:''}</div><div class="note">${u.dN}</div><button class="ghost" data-a="edit">${u.edit}</button><button class="sw" data-a="wipe">${u.wipe}</button></section>`+remCard();
   window.scrollTo(0,0);
@@ -367,7 +380,7 @@ function render(){
 /* ===== Actions ===== */
 function save(){st.set('sanad_log',JSON.stringify(S.log));st.set('sanad_cur',JSON.stringify(S.cur))}
 const act={
-  tab(v){S.tab=v;S.room=null;render()},
+  tab(v){S.tab=v;S.room=null;render();if(v==='qibla'&&(!loc||Date.now()-loc.ts>18e5))getLoc(false)},
   room(v){S.room=+v;render()},
   back(){S.room=null;render()},
   take(){
@@ -377,10 +390,87 @@ const act={
   go(){if(done())return;S.days.push(key(new Date()));S.days=S.days.slice(-60);st.set('sanad_days',JSON.stringify(S.days));render()},
   sw(){S.swaps++;render()},
   edit(){openDlg()},
-  wipe(){['sanad_user','sanad_days','sanad_guest','sanad_log','sanad_cur'].forEach(st.del);S.user=null;S.days=[];S.log={};S.cur={};render();openDlg()}
+  wipe(){['sanad_user','sanad_days','sanad_guest','sanad_log','sanad_cur','sanad_loc'].forEach(st.del);loc=null;S.user=null;S.days=[];S.log={};S.cur={};render();openDlg()}
 };
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b&&act[b.dataset.a])act[b.dataset.a](b.dataset.v)});
 document.addEventListener('change',e=>{if(e.target.id==='lang'||e.target.id==='langTop'){S.lang=e.target.value;st.set('sanad_lang',S.lang);render();scheduleRem()}});
+
+/* ===== Location + Qibla (location stays on the device) ===== */
+const QT={
+sd:{tQ:'القبلة',t:'🧭 اتجاه القبلة',upd:'📍 تحديث موقعي',cmp:'🧭 تفعيل البوصلة',brg:'زاوية القبلة (من الشمال)',dst:'المسافة لمكة',hint:'امسك التلفون أفقياً، وبعيد من المغناطيس والمعادن، وحرّكو على شكل 8 لمعايرة البوصلة. لف لحدّ ما 🕋 يطلع فوق.',ok:'✓ أنت متجه نحو القبلة',need:'اسمح بالموقع عشان نحسب اتجاه القبلة.',wait:'جاري تحديد الموقع…',reading:'جاري قراءة البوصلة…',denied:'إذن الموقع مرفوض؛ فعّلو من إعدادات التلفون.',fail:'تعذّر تحديد الموقع؛ تأكد إن الـGPS شغال وحاول تاني.',nocmp:'البوصلة غير متاحة في جهازك. استعمل زاوية القبلة المكتوبة فوق (بتبدأ من الشمال مع عقارب الساعة).',note:'الاتجاه تقريبي ويعتمد على حساسات التلفون؛ لو أمكن تأكد من محراب مسجد قريب.',priv:'🔒 موقعك بيتحفظ في جهازك بس، وما بيتبعت لأي جهة.',del:'حذف موقعي المحفوظ'},
+ar:{tQ:'القبلة',t:'🧭 اتجاه القبلة',upd:'📍 تحديث موقعي',cmp:'🧭 تفعيل البوصلة',brg:'زاوية القبلة (من الشمال)',dst:'المسافة إلى مكة',hint:'امسك الهاتف أفقياً بعيداً عن المغناطيس والمعادن، وحرّكه على شكل 8 لمعايرة البوصلة. أدر حتى يصبح 🕋 في الأعلى.',ok:'✓ أنت متجه نحو القبلة',need:'اسمح بالموقع لنحسب اتجاه القبلة.',wait:'جارٍ تحديد الموقع…',reading:'جارٍ قراءة البوصلة…',denied:'إذن الموقع مرفوض؛ فعّله من إعدادات الهاتف.',fail:'تعذّر تحديد الموقع؛ تأكد من تشغيل GPS وأعد المحاولة.',nocmp:'البوصلة غير متاحة في جهازك. استعمل زاوية القبلة المكتوبة أعلاه (من الشمال مع عقارب الساعة).',note:'الاتجاه تقريبي ويعتمد على حساسات الهاتف؛ إن أمكن فتحقّق من محراب مسجد قريب.',priv:'🔒 يُحفظ موقعك على جهازك فقط ولا يُرسل إلى أي جهة.',del:'حذف موقعي المحفوظ'},
+en:{tQ:'Qibla',t:'🧭 Qibla direction',upd:'📍 Update my location',cmp:'🧭 Enable compass',brg:'Qibla angle (from north)',dst:'Distance to Makkah',hint:'Hold the phone flat, away from magnets and metal, and move it in a figure 8 to calibrate. Turn until 🕋 is at the top.',ok:'✓ You are facing the Qibla',need:'Allow location so the Qibla direction can be calculated.',wait:'Finding your location…',reading:'Reading the compass…',denied:'Location permission denied; enable it in phone settings.',fail:'Could not get your location; make sure GPS is on and try again.',nocmp:'No compass on this device. Use the Qibla angle above (from north, clockwise).',note:'The direction is approximate and depends on your phone’s sensors; if possible, confirm with the mihrab of a nearby mosque.',priv:'🔒 Your location stays on this device and is never sent anywhere.',del:'Delete my saved location'},
+fr:{tQ:'Qibla',t:'🧭 Direction de la Qibla',upd:'📍 Actualiser ma position',cmp:'🧭 Activer la boussole',brg:'Angle de la Qibla (depuis le nord)',dst:'Distance jusqu’à La Mecque',hint:'Tenez le téléphone à plat, loin des aimants et du métal, et dessinez un 8 pour calibrer. Tournez jusqu’à ce que 🕋 soit en haut.',ok:'✓ Vous faites face à la Qibla',need:'Autorisez la localisation pour calculer la direction de la Qibla.',wait:'Localisation en cours…',reading:'Lecture de la boussole…',denied:'Localisation refusée ; activez-la dans les réglages du téléphone.',fail:'Position introuvable ; vérifiez que le GPS est activé et réessayez.',nocmp:'Boussole indisponible sur cet appareil. Utilisez l’angle de la Qibla ci-dessus (depuis le nord, sens horaire).',note:'Direction approximative, dépendante des capteurs du téléphone ; si possible, vérifiez avec le mihrab d’une mosquée proche.',priv:'🔒 Votre position reste sur cet appareil et n’est envoyée nulle part.',del:'Supprimer ma position enregistrée'},
+id:{tQ:'Kiblat',t:'🧭 Arah Kiblat',upd:'📍 Perbarui lokasiku',cmp:'🧭 Aktifkan kompas',brg:'Sudut Kiblat (dari utara)',dst:'Jarak ke Makkah',hint:'Pegang ponsel mendatar, jauh dari magnet dan logam, lalu gerakkan membentuk angka 8 untuk kalibrasi. Putar hingga 🕋 berada di atas.',ok:'✓ Kamu menghadap Kiblat',need:'Izinkan lokasi agar arah Kiblat dapat dihitung.',wait:'Menentukan lokasi…',reading:'Membaca kompas…',denied:'Izin lokasi ditolak; aktifkan di pengaturan ponsel.',fail:'Gagal menentukan lokasi; pastikan GPS aktif dan coba lagi.',nocmp:'Kompas tidak tersedia di perangkat ini. Gunakan sudut Kiblat di atas (dari utara, searah jarum jam).',note:'Arah ini perkiraan dan bergantung pada sensor ponsel; jika memungkinkan, cocokkan dengan mihrab masjid terdekat.',priv:'🔒 Lokasimu hanya tersimpan di perangkat ini dan tidak dikirim ke mana pun.',del:'Hapus lokasi tersimpan'}};
+Object.keys(L).forEach(k=>{if(QT[k])L[k].ui.tQ=QT[k].tQ});
+const qt=()=>QT[S.lang]||QT.en;
+const KAABA={lat:21.422487,lon:39.826206};
+const d2r=x=>x*Math.PI/180,r2d=x=>x*180/Math.PI;
+function qiblaBearing(la,lo){const p1=d2r(la),p2=d2r(KAABA.lat),dl=d2r(KAABA.lon-lo);
+  return (r2d(Math.atan2(Math.sin(dl)*Math.cos(p2),Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl)))+360)%360}
+function distKm(la,lo){const p1=d2r(la),p2=d2r(KAABA.lat),dp=p2-p1,dl=d2r(KAABA.lon-lo);
+  const a=Math.sin(dp/2)*Math.sin(dp/2)+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)*Math.sin(dl/2);return 2*6371*Math.asin(Math.sqrt(a))}
+function headingFrom(al,be,ga){const a=d2r(al),b=d2r(be),g=d2r(ga);
+  if(Math.abs(be)<50)return (r2d(Math.atan2(-Math.sin(a)*Math.cos(b),Math.cos(a)*Math.cos(b)))+360)%360;
+  const rA=-Math.cos(a)*Math.sin(g)-Math.sin(a)*Math.sin(b)*Math.cos(g),rB=-Math.sin(a)*Math.sin(g)+Math.cos(a)*Math.sin(b)*Math.cos(g);
+  return (r2d(Math.atan2(rA,rB))+360)%360}
+let loc=parse('sanad_loc',null),qBusy=false,qMsg='',heading=null,compassOn=false,qNoCmp=false,wasOk=false,cmpTimer=null;
+const GEO=()=>window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Geolocation;
+async function getLoc(manual){
+  if(qBusy)return;qBusy=true;if(manual||!loc){qMsg='';render()}
+  try{
+    let c;const G=GEO();
+    if(G){
+      let p=await G.checkPermissions();
+      if(p.location!=='granted'&&p.coarseLocation!=='granted')p=await G.requestPermissions();
+      if(p.location!=='granted'&&p.coarseLocation!=='granted'){if(manual||!loc)qMsg=qt().denied;qBusy=false;render();return}
+      c=(await G.getCurrentPosition({enableHighAccuracy:true,timeout:20000,maximumAge:0})).coords;
+    }else if(navigator.geolocation){
+      c=(await new Promise((ok,no)=>navigator.geolocation.getCurrentPosition(ok,no,{enableHighAccuracy:true,timeout:20000,maximumAge:60000}))).coords;
+    }else{if(manual||!loc)qMsg=qt().fail;qBusy=false;render();return}
+    loc={lat:c.latitude,lon:c.longitude,acc:c.accuracy,ts:Date.now()};st.set('sanad_loc',JSON.stringify(loc));qMsg='';
+  }catch(e){if(manual||!loc)qMsg=(e&&(e.code===1||/denied|permission/i.test(String(e.message||e))))?qt().denied:qt().fail}
+  qBusy=false;render();
+}
+function onOri(e){
+  let h=null;
+  if(typeof e.webkitCompassHeading==='number')h=e.webkitCompassHeading;
+  else if(e.type==='deviceorientationabsolute'||e.absolute===true){
+    if(typeof e.alpha==='number'&&typeof e.beta==='number'&&typeof e.gamma==='number')h=headingFrom(e.alpha,e.beta,e.gamma);
+    else if(typeof e.alpha==='number')h=(360-e.alpha)%360}
+  if(h===null||isNaN(h))return;
+  if(heading===null)heading=h;else{const dl=((h-heading+540)%360)-180;heading=(heading+dl*0.25+360)%360}
+  qNoCmp=false;updateCompassUI();
+}
+async function startCompass(gesture){
+  if(compassOn)return;
+  try{if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
+    if(!gesture)return;
+    const r=await DeviceOrientationEvent.requestPermission();if(r!=='granted'){qNoCmp=true;render();return}}}catch(e){}
+  window.addEventListener('deviceorientationabsolute',onOri,true);window.addEventListener('deviceorientation',onOri,true);
+  compassOn=true;clearTimeout(cmpTimer);cmpTimer=setTimeout(()=>{if(heading===null){qNoCmp=true;render()}},3000);
+  if(gesture)render();
+}
+function stopCompass(){if(!compassOn)return;
+  window.removeEventListener('deviceorientationabsolute',onOri,true);window.removeEventListener('deviceorientation',onOri,true);
+  compassOn=false;heading=null;clearTimeout(cmpTimer)}
+function updateCompassUI(){const d=$('qDial');if(!d||!loc||heading===null)return;
+  d.style.transform='rotate('+(-heading)+'deg)';
+  const dd=(((qiblaBearing(loc.lat,loc.lon)-heading)%360)+360)%360,diff=Math.min(dd,360-dd),ok=diff<=5;
+  d.classList.toggle('ok',ok);const s=$('qState');if(s)s.textContent=ok?qt().ok:qt().hint;
+  if(ok&&!wasOk&&navigator.vibrate){try{navigator.vibrate(40)}catch(e){}}wasOk=ok}
+function syncCompass(){if(S.tab==='qibla'&&S.room===null&&loc)startCompass(false);else stopCompass();updateCompassUI()}
+function qiblaHTML(){const q=qt();let h=`<section class="card"><div class="t">${q.t}</div>`;
+  if(!loc){return h+`<p class="s">${qBusy?q.wait:q.need}</p><button class="go" data-a="qloc" ${qBusy?'disabled':''}>${q.upd}</button>${qMsg?`<p class="limit">${qMsg}</p>`:''}<div class="note">${q.priv}</div></section>`}
+  const qb=qiblaBearing(loc.lat,loc.lon),km=Math.round(distKm(loc.lat,loc.lon)).toLocaleString(L[S.lang].loc);
+  const state=qNoCmp?q.nocmp:(heading===null&&compassOn)?q.reading:q.hint;
+  return h+`<div class="qwrap"><div class="qtop">▲</div><div class="dial" id="qDial"><span class="qn">N</span><div class="qpt" style="transform:rotate(${qb}deg)"><div class="qline"></div><div class="qk">🕋</div></div></div></div>`+
+   `<div class="qinfo"><div><b>${Math.round(qb)}°</b><small>${q.brg}</small></div><div><b>${km}</b><small>${q.dst} (km)</small></div></div>`+
+   `<p class="s qstate" id="qState">${state}</p><div class="qcoord">${loc.lat.toFixed(4)}, ${loc.lon.toFixed(4)}${loc.acc?' · ±'+Math.round(loc.acc)+' m':''}</div>`+
+   (!compassOn?`<button class="sw" data-a="qcmp">${q.cmp}</button>`:'')+`<button class="sw" data-a="qloc" ${qBusy?'disabled':''}>${qBusy?q.wait:q.upd}</button>`+
+   (qMsg?`<p class="limit">${qMsg}</p>`:'')+`<div class="note">${q.note}</div><div class="note">${q.priv}</div><button class="ghost" data-a="qdel">${q.del}</button></section>`}
+act.qloc=()=>getLoc(true);act.qcmp=()=>startCompass(true);
+act.qdel=()=>{st.del('sanad_loc');loc=null;stopCompass();render()};
 
 /* ===== Reminders (work inside the native Android app only) ===== */
 const RT={
@@ -400,7 +490,9 @@ const LN=()=>window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugin
 let remNote='';
 function remCard(){const r=RT[S.lang];
   return `<section class="card"><div class="t">${r.t}</div>`+(LN()?`<label class="remrow"><input type="checkbox" id="remOn" ${rem.on?'checked':''}> ${r.on}</label><div class="s" style="margin:8px 0 6px">${r.at}</div><input type="time" id="remTime" value="${rem.t}"><button class="sw" data-a="remtest">${r.test}</button>${remNote?`<p class="limit">${remNote}</p>`:''}`:`<p class="s">${r.none}</p>`)+`</section>`}
-async function askPerm(P){let p=await P.checkPermissions();if(p.display!=='granted')p=await P.requestPermissions();return p.display==='granted'}
+const REM_CH='sanad_reminders';
+const remBody=i=>{const M=REM_MSG[S.lang],m=M[(dayNo()+i)%M.length],n=S.user&&S.user.name;return n&&!/^[﴿“«]/.test(m)?(isAr()?'يا '+n+'، ':n+', ')+m:m};
+async function askPerm(P){let p=await P.checkPermissions();if(p.display!=='granted')p=await P.requestPermissions();if(p.display==='granted'){try{await P.createChannel({id:REM_CH,name:'تذكيرات سَنَد',description:'Sanad reminders',importance:5,visibility:1,vibration:true,lights:true,lightColor:'#8B6BFF'})}catch(e){}}return p.display==='granted'}
 async function scheduleRem(){const P=LN();if(!P)return;
   try{await P.cancel({notifications:Array.from({length:30},(_,i)=>({id:i+1}))})}catch(e){}
   if(!rem.on)return;
@@ -408,12 +500,12 @@ async function scheduleRem(){const P=LN();if(!P)return;
     if(!await askPerm(P)){rem.on=false;st.set('sanad_rem',JSON.stringify(rem));remNote=RT[S.lang].denied;return}
     const hm=rem.t.split(':').map(Number),M=REM_MSG[S.lang],now=new Date(),list=[];
     for(let i=0;i<14;i++){const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()+i,hm[0],hm[1],0);if(d<=now)continue;
-      list.push({id:i+1,title:'سَنَد',body:M[(dayNo()+i)%M.length],schedule:{at:d,allowWhileIdle:true}})}
+      list.push({id:i+1,title:'سَنَد',body:remBody(i),largeBody:remBody(i),summaryText:'سَنَد',channelId:REM_CH,smallIcon:'ic_stat_icon_config_sample',iconColor:'#8B6BFF',autoCancel:true,schedule:{at:d,allowWhileIdle:true}})}
     if(list.length)await P.schedule({notifications:list});
   }catch(e){}}
 act.remtest=async()=>{const P=LN();if(!P)return;
   try{if(!await askPerm(P)){remNote=RT[S.lang].denied;render();return}
-    await P.schedule({notifications:[{id:99,title:'سَنَد',body:REM_MSG[S.lang][0],schedule:{at:new Date(Date.now()+5000),allowWhileIdle:true}}]})}catch(e){}};
+    await P.schedule({notifications:[{id:99,title:'سَنَد',body:remBody(0),largeBody:remBody(0),summaryText:'سَنَد',channelId:REM_CH,smallIcon:'ic_stat_icon_config_sample',iconColor:'#8B6BFF',autoCancel:true,schedule:{at:new Date(Date.now()+5000),allowWhileIdle:true}}]})}catch(e){}};
 document.addEventListener('change',async e=>{
   if(e.target.id==='remOn'){rem.on=e.target.checked;remNote='';st.set('sanad_rem',JSON.stringify(rem));await scheduleRem();render()}
   else if(e.target.id==='remTime'&&e.target.value){rem.t=e.target.value;st.set('sanad_rem',JSON.stringify(rem));await scheduleRem()}});
