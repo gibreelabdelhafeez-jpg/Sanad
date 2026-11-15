@@ -15,6 +15,58 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+      - name: Use a fixed debug key
+        run: |
+          mkdir -p ~/.android
+          base64 -d > ~/.android/debug.keystore <<'EOF'
+          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
+          EOF
       - name: Arrange project files
         run: |
           mkdir -p www assets resources
@@ -41,7 +93,7 @@ jobs:
           cat > capacitor.config.json <<'EOF'
           {
             "appId": "com.jibreel.sanad",
-            "appName": "سَنَد",
+            "appName": "爻賻賳賻丿",
             "webDir": "www",
             "android": {
               "backgroundColor": "#0a0626"
