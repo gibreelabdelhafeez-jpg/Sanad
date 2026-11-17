@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Android (debug APK + signed AAB)
 on:
   workflow_dispatch:
   push:
@@ -10,11 +10,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: 21
       - name: Use a fixed debug key
         run: |
           mkdir -p ~/.android
@@ -80,13 +80,13 @@ jobs:
             "private": true,
             "description": "Sanad Android app",
             "dependencies": {
-              "@capacitor/core": "^6.2.0",
-              "@capacitor/android": "^6.2.0",
-              "@capacitor/local-notifications": "^6.1.0",
-              "@capacitor/geolocation": "^6.0.0"
+              "@capacitor/core": "^8.0.0",
+              "@capacitor/android": "^8.0.0",
+              "@capacitor/local-notifications": "^8.0.0",
+              "@capacitor/geolocation": "^8.0.0"
             },
             "devDependencies": {
-              "@capacitor/cli": "^6.2.0",
+              "@capacitor/cli": "^8.0.0",
               "@capacitor/assets": "^3.0.5"
             }
           }
@@ -103,6 +103,9 @@ jobs:
               "LocalNotifications": {
                 "smallIcon": "ic_stat_icon_config_sample",
                 "iconColor": "#8b6bff"
+              },
+              "SystemBars": {
+                "style": "DARK"
               }
             }
           }
@@ -117,11 +120,15 @@ jobs:
           printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <string name="app_name">&#1587;&#1606;&#1583;</string>\n    <string name="title_activity_main">&#1587;&#1606;&#1583;</string>\n</resources>\n' > android/app/src/main/res/values-ar/strings.xml
       - name: Generate icons and splash
         run: npx @capacitor/assets generate --android
-      - name: Notification icon and permission
+      - name: Notification icon and permissions
         run: |
           mkdir -p android/app/src/main/res/drawable
           cp resources/ic_stat_icon_config_sample.png android/app/src/main/res/drawable/
           sed -i 's#<uses-permission android:name="android.permission.INTERNET" />#&\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />#' android/app/src/main/AndroidManifest.xml
+      - name: Set version from run number
+        run: |
+          sed -i "s/versionCode [0-9][0-9]*/versionCode ${{ github.run_number }}/; s/versionName \"[^\"]*\"/versionName \"1.0.${{ github.run_number }}\"/" android/app/build.gradle
+          grep -n "versionCode\|versionName" android/app/build.gradle
       - name: Sync web files
         run: npx cap sync android
       - name: Build debug APK
@@ -129,7 +136,26 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug
+      - name: Build release bundle (AAB)
+        working-directory: android
+        run: ./gradlew bundleRelease
+      - name: Sign the bundle with the upload key
+        env:
+          KS_B64: ${{ secrets.SANAD_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.SANAD_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.SANAD_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.SANAD_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KS_B64" ]; then echo "No signing secrets found: the AAB stays unsigned"; exit 0; fi
+          echo "$KS_B64" | base64 -d > upload.jks
+          jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore upload.jks -storepass "$KS_PASS" -keypass "$KEY_PASS" android/app/build/outputs/bundle/release/app-release.aab "$KEY_ALIAS"
+          jarsigner -verify android/app/build/outputs/bundle/release/app-release.aab | head -3
+          rm upload.jks
       - uses: actions/upload-artifact@v4
         with:
           name: sanad-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sanad-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
